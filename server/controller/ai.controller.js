@@ -14,7 +14,6 @@ const getResultController = async (req, res) => {
         if (jsonMatch) {
             cleanResult = jsonMatch[1].trim();
         }
-        console.log("Extracted JSON:", cleanResult);
 
         return res.json(JSON.parse(cleanResult));
     } catch (error) {

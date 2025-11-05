@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const userRoutes = require("./routes/user.route");
 const aiRoutes = require("./routes/ai.route");
-
+const { clerkMiddleware } = require("@clerk/express");
 const dotenv = require("dotenv");
 dotenv.config({ path: ".env.local" });
 
@@ -11,6 +11,7 @@ const app = express();
 // Middleware to parse JSON requests
 app.use(cors());
 app.use(express.json());
+app.use(clerkMiddleware());
 
 // Routes
 app.use("/", userRoutes);

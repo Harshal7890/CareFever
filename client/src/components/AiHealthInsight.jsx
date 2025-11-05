@@ -21,7 +21,6 @@ const AiHealthInsight = ({ aiInsight }) => {
         otcMedicines,
         urgentCareAlert,
         redFlagsToWatchFor,
-        supportiveCare,
         disclaimer,
     } = aiInsight;
 
@@ -207,7 +206,7 @@ const AiHealthInsight = ({ aiInsight }) => {
                     <div className="flex items-center gap-3 mb-4">
                         <Lightbulb className="w-6 h-6 text-yellow-500" />
                         <h3 className="text-xl font-bold text-light-primary-text dark:text-dark-primary-text">
-                            Lifestyle Tips
+                            Red Flags to Watch For
                         </h3>
                     </div>
 

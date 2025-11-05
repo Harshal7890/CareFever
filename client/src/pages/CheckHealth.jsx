@@ -12,6 +12,8 @@ import {
     RefreshCcw,
     CheckCircle2,
     Languages,
+    Save,
+    Info,
 } from "lucide-react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import axios from "axios";
@@ -19,20 +21,23 @@ import toast from "react-hot-toast";
 import AiHealthInsight from "../components/AiHealthInsight";
 
 const COMMON_SYMPTOMS = [
-    "Fever",
-    "Cough",
+    // Core fever symptoms (from previous list)
+    "Chills",
+    "Sweating",
+    "Body Aches",
     "Headache",
-    "Stomach Pain",
-    "Cold/Flu",
-    "Back Pain",
     "Fatigue",
-    "Chest Pain",
-    "Shortness of Breath",
-    "Skin Rash",
-    "Joint Pain",
+    "Weakness",
+    "Loss of Appetite",
+
+    // Symptoms from common causes (respiratory/digestive)
+    "Cough",
     "Sore Throat",
+    "Runny Nose",
+    "Stuffy Nose",
     "Nausea",
-    "Dizziness",
+    "Vomiting",
+    "Diarrhea",
 ];
 
 function SymptomTag({ label, onRemove }) {
@@ -114,11 +119,10 @@ const CheckHealth = () => {
         - Previous Medical History: N/A
         - Fever Temperature: 102°F
         - Fever Duration: 2 days
-        - Reported Symptoms: ${
-            Array.isArray(symptoms) && symptoms.length
+        - Reported Symptoms: ${Array.isArray(symptoms) && symptoms.length
                 ? symptoms.join(", ")
                 : "N/A"
-        } (e.g., "cough, body ache, sore throat, headache")
+            } (e.g., "cough, body ache, sore throat, headache")
         - Description of Feelings: ${input.trim() || "N/A"}
 
         ### Your Tasks (Fever-Specific):
@@ -177,85 +181,6 @@ const CheckHealth = () => {
         }
         `.trim();
 
-        // const prompt2 = `
-        // You are "CareFever," an AI-based fever assistant (not a doctor).
-        // Your primary role is to analyze a user's fever and related symptoms to provide clear, structured, and simple health insights.
-        // You must be empathetic and use non-technical, easy-to-understand language.
-
-        // ### User Input:
-        // - Full Name: ${user.fullName || "N/A"}
-        // - Date of Birth (DOB): ${user.dob || "N/A"} ${
-        //     user.dob ? `→ Age: ${age}` : ""
-        // }
-        // - Gender: ${user.gender || "N/A"}
-        // - Previous Medical History: ${user.medicalHistory || "N/A"}
-        // - Fever Temperature: ${
-        //     fever.temperature || "N/A"
-        // } (e.g., "102°F" or "39°C")
-        // - Fever Duration: ${fever.duration || "N/A"} (e.g., "2 days")
-        // - Reported Symptoms: ${
-        //     Array.isArray(symptoms) && symptoms.length
-        //         ? symptoms.join(", ")
-        //         : "N/A"
-        // } (e.g., "cough, body ache, sore throat, headache")
-        // - Description of Feelings: ${input.trim() || "N/A"}
-
-        // ### Your Tasks (Fever-Specific):
-        // 1. Fever Severity Analysis: Provide an overall assessment of the fever's state: Mild / Moderate / High-Risk. Base this on temperature, age, duration, and other symptoms.
-        // 2. Possible Fever Causes: List 2-3 possible *types* of causes (not specific diseases). Give a confidence percentage and a simple reason. Focus on common causes like viral or bacterial infections.
-        // 3. Fever Management Tips: Provide safe, non-medical home remedies specifically for fever comfort.
-        // 4. Fever Reducer Suggestions: Suggest appropriate over-the-counter (OTC) medicines for fever (e.g., paracetamol, ibuprofen). **Crucially, add warnings** (e.g., "Always follow package dosing," "Do not give Aspirin to children").
-        // 5. Urgent Care Red Flags: This is the most important task. Analyze the input for specific red flags associated with fever. Clearly state if immediate medical attention is needed.
-        // 6. Supportive Care Advice: Suggest general actions to help the body recover (hydration, rest).
-        // 7. Medical Disclaimer: Always end with the required disclaimer.
-
-        // ### Output Format (JSON only):
-        // {
-        //   "feverSeverity": "Mild | Moderate | High-Risk",
-        //   "possibleFeverCauses": [
-        //     {
-        //       "name": "e.g., Viral Infection (like Flu or Common Cold)",
-        //       "confidence": "e.g., 80%",
-        //       "reason": "e.g., Fever with body aches and a cough often points to a virus."
-        //     },
-        //     {
-        //       "name": "e.g., Bacterial Infection (like Strep Throat)",
-        //       "confidence": "e.g., 60%",
-        //       "reason": "e.g., High fever and a very sore throat could be a bacterial issue."
-        //     }
-        //   ],
-        //   "feverManagementTips": [
-        //     "Take a lukewarm (not cold) sponge bath to help cool your body.",
-        //     "Wear light, breathable clothing and use only a light blanket.",
-        //     "Place a cool, damp cloth on your forehead."
-        //   ],
-        //   "otcMedicines": [
-        //     "Paracetamol (Acetaminophen) can help reduce fever and relieve aches. Always follow the instructions on the package and do not take more than the recommended dose.",
-        //     "Ibuprofen can also help with fever and inflammation. Do not take it on an empty stomach.",
-        //     "Important: Do not give Aspirin to children or teenagers, as it can cause a rare but serious condition called Reye's syndrome."
-        //   ],
-        //   "urgentCareAlert": {
-        //     "trigger": "Yes | No",
-        //     "message": "e.g., 'Yes, your reported stiff neck and high fever are serious signs. Please seek emergency medical care immediately.' OR 'No, your symptoms sound manageable at home for now, but watch for these red flags.'"
-        //   },
-        //   "redFlagsToWatchFor": [
-        //     "Fever above 104°F (40°C) that doesn't come down with medicine",
-        //     "Fever lasting more than 3 days",
-        //     "Severe headache or a stiff neck",
-        //     "Difficulty breathing or chest pain",
-        //     "Confusion, extreme sleepiness, or difficulty waking up",
-        //     "A skin rash that looks like small bruises",
-        //     "Seizures or convulsions",
-        //     "Any high fever in a baby less than 3 months old"
-        //   ],
-        //   "supportiveCare": [
-        //     "Drink plenty of fluids like water, clear broths, or electrolyte drinks to prevent dehydration.",
-        //     "Get as much rest as possible. Your body needs energy to fight the infection."
-        //   ],
-        //   "disclaimer": "This is not a medical diagnosis. I am an AI assistant, not a doctor. Please consult a licensed doctor for professional advice."
-        // }
-        // `.trim();
-
         if (!canSubmit) return;
 
         await toast.promise(
@@ -272,8 +197,7 @@ const CheckHealth = () => {
                     console.log(res.data);
                     setAiInsight(res.data);
 
-                    setInput("");
-                    setSymptoms([]);
+
 
                     return res.data;
                 } catch (e) {
@@ -283,8 +207,7 @@ const CheckHealth = () => {
             {
                 loading: "AI is analyzing your symptoms...",
                 success: (data) =>
-                    `Analysis complete! Found ${
-                        data.possibleDiseases?.length || 0
+                    `Analysis complete! Found ${data.possibleDiseases?.length || 0
                     } possible conditions.`,
                 error: (err) => `Failed to analyze symptoms.`,
             }
@@ -295,6 +218,28 @@ const CheckHealth = () => {
         // Simple demo: simulates starting/stopping voice capture
         setRecording((r) => !r);
     };
+
+    const saveProfileHandler = async (e) => {
+        e.preventDefault();
+        console.log(input);
+        console.log(symptoms);
+
+        try {
+            console.log(user.id);
+            const res = await axios.post("http://localhost:8000/save-profile", {
+                userId: user.id,
+                ...aiInsight,
+                input,
+                symptoms,
+            });
+            console.log(res.data);
+
+            setInput("");
+            setSymptoms([]);
+        } catch (error) {
+            console.log(error);
+        }
+    }
 
     return (
         <div className="w-full max-w-6xl mx-auto min-h-screen py-8">
@@ -336,11 +281,10 @@ const CheckHealth = () => {
                             <button
                                 type="button"
                                 onClick={toggleVoice}
-                                className={`absolute right-3 bottom-3 p-2 rounded-lg transition ${
-                                    recording
-                                        ? "bg-red-100 text-red-600 dark:bg-red-900/30"
-                                        : "bg-light-background dark:bg-dark-background text-light-secondary-text dark:text-dark-secondary-text"
-                                }`}
+                                className={`absolute right-3 bottom-3 p-2 rounded-lg transition ${recording
+                                    ? "bg-red-100 text-red-600 dark:bg-red-900/30"
+                                    : "bg-light-background dark:bg-dark-background text-light-secondary-text dark:text-dark-secondary-text"
+                                    }`}
                                 title="Voice Input"
                                 aria-pressed={recording}>
                                 <Mic className="w-4 h-4" />
@@ -412,7 +356,7 @@ const CheckHealth = () => {
 
                 {/* Common Symptoms & Info */}
                 <div className="space-y-6">
-                    <div className="bg-light-surface dark:bg-dark-bg rounded-2xl shadow p-5">
+                    <div className="bg-light-surface dark:bg-dark-surface rounded-2xl shadow p-5">
                         <div className="flex items-center gap-2 mb-3">
                             <Pill className="w-5 h-5 text-fuchsia-600" />
                             <h4 className="font-semibold text-light-primary-text dark:text-dark-primary-text">
@@ -434,7 +378,7 @@ const CheckHealth = () => {
                         </ul>
                     </div>
 
-                    <div className="bg-light-surface dark:bg-dark-bg rounded-2xl shadow p-5">
+                    <div className="bg-light-surface dark:bg-dark-surface rounded-2xl shadow p-5">
                         <div className="flex items-center gap-2 mb-2">
                             <Leaf className="w-5 h-5 text-emerald-600" />
                             <h4 className="font-semibold text-light-primary-text dark:text-dark-primary-text">
@@ -450,6 +394,28 @@ const CheckHealth = () => {
                             the browser console after submitting.
                         </div>
                     </div>
+
+                    {aiInsight && (
+
+                        <div className="flex flex-col gap-4 bg-light-surface dark:bg-dark-surface rounded-2xl p-5">
+                            <button
+                                onClick={saveProfileHandler}
+                                className="flex items-center justify-center gap-2 px-4 py-3  bg-light-secondary dark:bg-dark-secondary rounded-md text-white w-full transition-colors"
+                            >
+                                <Save className="w-5 h-5" />
+                                Save to My Profile
+                            </button>
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1 text-light-secondary-text dark:text-dark-secondary-text">
+                                    <Info size={20} />
+                                    <p className="text-sm">Disclaimer</p>
+                                </div>
+                                <p className="text-xs text-light-secondary-text dark:text-dark-secondary-text">
+                                    Not medical advice. For reference only. Will be saved to your profile and give reminders.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

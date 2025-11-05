@@ -6,7 +6,6 @@ const userClerkController = async (req, res) => {
     try {
         // Get the raw body as a string
         const rawBody = JSON.stringify(req.body);
-        // console.log('Raw body:', rawBody);
         
         const headers = req.headers;
 
@@ -16,7 +15,7 @@ const userClerkController = async (req, res) => {
             "svix-timestamp": headers["svix-timestamp"],
             "svix-signature": headers["svix-signature"],
         });
-
+        
         const {
             id,
             email_addresses,
@@ -30,7 +29,7 @@ const userClerkController = async (req, res) => {
         switch (evt.type) {
             case "user.created":
                 await db
-                    .collection("users")
+                .collection("users")
                     .doc(id)
                     .set({
                         email: email_addresses[0].email_address,
@@ -40,7 +39,7 @@ const userClerkController = async (req, res) => {
                         imageUrl: image_url || "",
                         createdAt: created_at,
                     });
-                break;
+                    break;
 
             case "user.updated":
                 await db
@@ -77,6 +76,42 @@ const userClerkController = async (req, res) => {
     }
 };
 
+const saveProfileController = async(req, res)=>{
+    try {
+        const {userId, feverSeverity,possibleFeverCauses,feverManagementTips,otcMedicines,urgentCareAlert,redFlagsToWatchFor,symptoms} = req.body;
+        if(!userId || !feverSeverity || !possibleFeverCauses || !feverManagementTips || !otcMedicines || !urgentCareAlert || !redFlagsToWatchFor){
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required",
+            });
+        }
+        
+        const record = await db.collection("users").doc(userId).collection("past-records").add({
+            feverSeverity,
+            possibleFeverCauses,
+            feverManagementTips,
+            otcMedicines,
+            urgentCareAlert,
+            redFlagsToWatchFor,
+            symptoms,
+            createdAt: new Date(),
+        })
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile saved successfully",
+            recordId: record.id,
+        })
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Failed to save profile",
+            error: error.message,
+        })
+    }
+}
+
 module.exports = {
     userClerkController,
+    saveProfileController
 };
