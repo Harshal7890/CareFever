@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
-import { User, Phone, MapPin, Mail, Calendar, AlertCircle, Save, Loader2, Edit } from "lucide-react";
+import { User, Phone, MapPin, Mail, Calendar, AlertCircle, Save, Loader2, Edit, Crosshair, Siren } from "lucide-react";
 import EmergencyContacts from "../components/EmergencyContacts";
 import PastRecords from "../components/PastRecords";
 import { useAuth, useUser } from "@clerk/clerk-react";
@@ -31,6 +31,9 @@ const Dashboard = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [hasPersonalInfo, setHasPersonalInfo] = useState(false);
+    
+const [isGpsLocating, setIsGpsLocating] = useState(false);
+const [isSendingSOS, setIsSendingSOS] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -46,6 +49,81 @@ const Dashboard = () => {
         });
     };
 
+    
+
+    const handleUseGpsLocation = async () => {
+        if (!("geolocation" in navigator)) {
+            toast.error("Geolocation not supported by this browser");
+            return;
+        }
+        setIsGpsLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                try {
+                    const { latitude, longitude } = position.coords;
+                    // Reverse geocode using Nominatim (OpenStreetMap)
+                    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`;
+                    const res = await fetch(url, {
+                        headers: {
+                            // Identify the app to comply with Nominatim usage policy
+                            "Accept": "application/json",
+                        },
+                    });
+                    if (!res.ok) throw new Error("Reverse geocoding failed");
+                    const data = await res.json();
+                    const a = data.address || {};
+                    const cityPart = a.city || a.town || a.village || a.hamlet;
+                    const parts = [a.road, a.suburb, cityPart, a.state, a.postcode, a.country].filter(Boolean);
+                    const coords = `(${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
+                    const display = (data.display_name || parts.join(", ") || "Unknown location").trim();
+                    setPersonalDetails((prev) => ({
+                        ...prev,
+                        currentLocation: `${display} ${coords}`,
+                    }));
+                    toast.success("Precise location detected");
+                } catch (err) {
+                    console.error("GPS reverse geocode error:", err);
+                    toast.error("Failed to resolve precise address");
+                } finally {
+                    setIsGpsLocating(false);
+                }
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                const map = {
+                    1: "Permission denied",
+                    2: "Position unavailable",
+                    3: "Request timed out",
+                };
+                toast.error(map[error.code] || "Geolocation failed");
+                setIsGpsLocating(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
+   
+
+  const handleSendSOS = async () => {
+    setIsSendingSOS(true);
+    try {
+      const res = await axios.post("http://localhost:5000/api/send-sos", {
+        phone: "+18777804236",
+        message: "🚨 SOS Alert! Help needed immediately!",
+      });
+
+      if (res.data.success) {
+        alert("✅ SOS message sent successfully!");
+      } else {
+        alert("❌ Failed to send SOS");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("⚠️ Error sending SOS");
+    } finally {
+      setIsSendingSOS(false);
+    }
+  };
     // Fetch user data on component mount
     useEffect(() => {
         const fetchUserData = async () => {
@@ -190,9 +268,30 @@ const Dashboard = () => {
                     transition={{ duration: 0.5 }}
                     className="mb-8"
                 >
-                    <h1 className="text-3xl font-bold text-light-primary-text dark:text-dark-primary-text mb-2">
-                        Dashboard
-                    </h1>
+                    <div className="flex items-center justify-between gap-4">
+                        <h1 className="text-3xl font-bold text-light-primary-text dark:text-dark-primary-text mb-2">
+                            Dashboard
+                        </h1>
+                        <motion.button
+                            onClick={handleSendSOS}
+                            disabled={isSendingSOS}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isSendingSOS ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Sending SOS...
+                                </>
+                            ) : (
+                                <>
+                                    <Siren className="h-4 w-4" />
+                                    SOS
+                                </>
+                            )}
+                        </motion.button>
+                    </div>
                     <p className="text-light-secondary-text dark:text-dark-secondary-text">
                         Your personal information and emergency details
                     </p>
@@ -413,19 +512,38 @@ const Dashboard = () => {
                                     <label className="text-sm text-light-secondary-text dark:text-dark-secondary-text">
                                         Current Location <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
+                                    <textarea
                                         name="currentLocation"
                                         value={personalDetails.currentLocation}
                                         onChange={handleChange}
                                         placeholder="Enter your current location"
                                         required
                                         aria-required="true"
-                                        className="w-full p-2 mt-1 rounded-md bg-white dark:bg-gray-700 text-black dark:text-white border border-light-secondary/20"
+                                        rows={3}
+                                        className="w-full p-2 mt-1 rounded-md bg-white dark:bg-gray-700 text-black dark:text-white border border-light-secondary/20 resize-y"
                                     />
                                     <p className="text-xs text-light-secondary-text dark:text-dark-secondary-text mt-1">
                                         You can edit the default location above.
                                     </p>
+                                    
+                                    <button
+                                        type="button"
+                                        onClick={handleUseGpsLocation}
+                                        disabled={isGpsLocating}
+                                        className="mt-2 ml-2 inline-flex items-center gap-2 px-3 py-2 rounded-md bg-light-secondary dark:bg-dark-secondary text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isGpsLocating ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Using GPS...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Crosshair className="h-4 w-4" />
+                                                Use precise location (GPS)
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         </div>
